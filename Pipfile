@@ -12,6 +12,7 @@ beautifulsoup4 = "*"
 openai = "*"
 pinecone-client = "*"
 black = "*"
+streamlit = "*"
 
 [dev-packages]
 
