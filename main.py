@@ -1,19 +1,30 @@
 import os
 from dotenv import load_dotenv
-from llama_index.readers import SimpleWebPageReader
-from llama_index import VectorStoreIndex
+from llama_index import VectorStoreIndex, ServiceContext
+from pinecone import Pinecone
+from llama_index.vector_stores import PineconeVectorStore
+from llama_index.callbacks import ( LlamaDebugHandler, CallbackManager)
+from llama_index.llms import OpenAI
 
-def main(url: str) -> None:
-  documents = SimpleWebPageReader(html_to_text=True).load_data(urls=[url])
-  # print(len(documents))
-  index = VectorStoreIndex.from_documents(documents=documents)
-  query_engine = index.as_query_engine()
-  response = query_engine.query("What is LlamaIndex ?")
-  print(response)
+load_dotenv()
+pc = Pinecone(
+    api_key=os.environ["PINECONE_API_KEY"],
+    environment=os.environ["PINECONE_ENVIRONMENT"],
+)
 
-if __name__ == '__main__':
-  load_dotenv()
-  print("Hello World. Let's learn llama index")
-  print("Open api key is : ", os.environ['OPENAI_API_KEY'])
-  print('********')
-  main(url='https://cbarkinozer.medium.com/an-overview-of-the-llamaindex-framework-9ee9db787d16')
+if __name__ == "__main__":
+    print("RAG....")
+    pinecone_index = pc.Index("llamaindex-documentation-helper")
+    vector_store = PineconeVectorStore(pinecone_index=pinecone_index)
+
+    llama_debug = LlamaDebugHandler(print_trace_on_end=True)
+    callback_manager = CallbackManager([llama_debug])
+    service_context = ServiceContext.from_defaults(callback_manager=callback_manager)
+    
+    index = VectorStoreIndex.from_vector_store(vector_store=vector_store, service_context=service_context)
+
+    query = "What is an Agent"
+    query_engine = index.as_query_engine()
+    response = query_engine.query(query)
+    print(response)
+
